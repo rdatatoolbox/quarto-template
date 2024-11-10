@@ -1,0 +1,34 @@
+# Table of contents
+
+---
+
+## Table of contents
+
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
+:::: { .columns }
+
+::: { .column .center width="33%"}
+{{< fa code size=2x >}}
+<br>
+Section 1
+:::
+
+::: { .column .center width="33%"}
+{{< fa brands github size=2x >}}
+<br>
+Section 2
+:::
+
+::: { .column .center width="33%"}
+{{< fa book size=2x >}}
+<br>
+Resources
+:::
+
+::::
