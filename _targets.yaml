@@ -1,3 +1,0 @@
-main:
-  script: analyses/pipeline.R
-  store: outputs/pipeline/

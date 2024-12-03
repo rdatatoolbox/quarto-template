@@ -11,11 +11,11 @@
 ::: {.column .information width="68%"}
 
 ::: {.title}
-Targets
+Quarto template
 :::
 
 ::: {.subtitle}
-A pipeline toolkit for R
+HTML presentation w/ RevealJS framework
 :::
 
 ::: {.date}
@@ -32,11 +32,12 @@ invisible(Sys.setlocale("LC_TIME", olocale))
 :::: {.columns .authors}
 
 ::: {.column .author width="32%"}
-François Guilhaumon<br/>
-[{{< fa envelope >}}](mailto:francois.guilhaumon@ird.fr)
-[{{< fa globe >}}](https://fguyilhaumon.github.io)
-[{{< fa brands orcid >}}](https://orcid.org/0000-0003-4707-8932)
-[{{< ai google-scholar >}}](https://scholar.google.fr/citations?user=jJwtZT0AAAAJ)
+Nicolas Casajus<br/>
+[{{< fa envelope >}}](mailto:rdev.nc@gmail.com)
+[{{< fa globe >}}](https://nicolascasajus.fr)
+[{{< fa brands github >}}](https://github.com/ahasverus)
+[{{< fa brands orcid >}}](https://orcid.org/0000-0002-5537-5294)
+[{{< ai google-scholar >}}](https://scholar.google.fr/citations?user=n1swa1UAAAAJ)
 :::
 
 <!-- Second author -->
@@ -67,11 +68,13 @@ Author name<br/>
 :::: {.columns .affiliations}
 
 ::: {.column .affiliation width="32%"}
-Research scientist
+Senior data scientist
 <br/>
-<code>@IRD</code>
+<code>@FRB-CESAB</code>
 &nbsp;
-[{{< fa globe >}}](https://ird.fr)
+[{{< fa globe >}}](https://www.fondationbiodiversite.fr/en/about-the-foundation/le-cesab/)
+&nbsp;
+[{{< fa brands github >}}](https://github.com/frbcesab)
 :::
 
 <!-- Second affiliation -->
