@@ -1,0 +1,30 @@
+---
+title: "Quarto targets example"
+format: html
+---
+
+```{r}
+#| echo: false
+
+targets::tar_config_set(
+  store  = "outputs/pipeline/",
+  script = "analyses/pipeline.R"
+)
+```
+
+Here is the fitted regression model of ozone versus wind and temperature
+
+```{r}
+summary(targets::tar_read("fit"))
+```
+
+Here is the histogram
+
+```{r}
+#| message: false
+
+targets::tar_load("hist")
+
+hist
+```
+

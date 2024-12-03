@@ -9,7 +9,10 @@ format:
     chalkboard: true
     toc-depth: 1
     theme: [default, "styles/main.scss"]
+    slide-number: true
 engine: knitr
+execute: 
+  echo: true
 ---
 
 <!-- Insert section 'Title slide' -->
@@ -19,16 +22,9 @@ engine: knitr
 ```
 
 
-<!-- Insert section 'Table of contents' -->
+<!-- Insert section 'Targets' -->
 
 ```{r}
-#| child: "sections/table-of-contents.qmd"
-```
-
-
-<!-- Insert section 'Quarto basics' -->
-
-```{r}
-#| child: "sections/quarto-basics.qmd"
+#| child: "sections/targets.qmd"
 ```
 

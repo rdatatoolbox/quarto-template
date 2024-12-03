@@ -1,0 +1,679 @@
+# What is targets?
+
+## 
+
+![](../images/tweet.png){fig-align="center"}
+
+## {auto-animate=true}
+
+![](../images/François_Tomb_Carlo_Ruspi_02.jpg){fig-align="center" width="80%"}
+
+## {auto-animate=true}
+
+::::{.columns}
+
+:::{.column}
+
+<br> <br>
+
+![](../images/François_Tomb_Carlo_Ruspi_02.jpg){fig-align="center" width="80%"}
+
+:::
+
+:::{.column}
+
+<br> <br>
+
+The Sisyphean workflow:
+
+> - Launch the code.
+<br> <br>
+> - Wait while it runs
+<br> <br>
+> - Discover an issue
+<br> <br>
+> - Restart from scratch
+
+:::
+
+::::
+
+
+## Targets
+
+[Targets](https://docs.ropensci.org/targets/) is an extension developed by Will Landau that allows you to organize a project in the form of a processing pipeline, made up of different stages, and automatically managing the dependencies between them.
+
+This organization has several advantages:
+
+> -   it allows all pipeline stages to be described in a dedicated file, and forces the various stages to be separated into separate functions, making the project easier to read and maintain
+
+> -   it facilitates reproducibility of processing, as it guarantees that all steps have been carried out in the right order and in a new environment
+
+> -   it optimizes calculation times, because in the event of modification, only those steps that require it are restarted
+
+![](../images/logo-targets.svg){fig-align="center" width="20%"}
+
+
+# How does it work?
+
+## Use functions
+
+Transform blocks of code into functions by wrapping them into ` <- function() { my_code }` and setting appropriate parameters.
+
+
+<br>
+
+```{r}
+#| eval: false
+#| echo: true
+mydata     <- read.csv("mydata.csv")
+
+data2      <- clean(mydata)
+data3      <- transform(data2)
+data4      <- erase_na(data3)
+data_clean <- transform(data_4)
+```
+
+<br> <br>
+
+
+:::{.fragment}
+
+```{r}
+#| eval: false
+#| echo: true
+mydata  <- read.csv("mydata.csv")
+
+wrangle <- function(data){
+  data2      <- clean(data)
+  data3      <- transform(data2)
+  data4      <- erase_na(data3)
+  data_clean <- transform(data_4)
+  return(data_clean)
+}
+
+data_clean <- wrangle(mydata)
+```
+
+:::
+
+## Targets
+
+In **targets**, a data analysis pipeline is a collection of target objects that express the individual steps of the workflow
+
+> - a target is a step of your pipeline (can also be an input file or a `Quarto` report)
+
+> - each target is defined using the function `tar_target()`, providing the name of the target as first argument and the function to create it as a second argument, there is a third optional argument to specify the 'type' of the target
+
+> - dependencies between targets are exposed because upstream targets are arguments of the functions used to build downstream targets
+
+> - this allow to visualize the pipeline as a dependency graph
+
+:::{.fragment}
+
+![](images/airquality-pipeline.png){fig-align="center"}
+
+:::
+
+
+## Creating the pipeline
+
+The pipeline is written in an R file, by default `Targets` looks  for a `_targets.R` file located at the root of your project.
+
+**But** this can be changed and the pipeline can be defined in an `R` file of your choice, you'll have to set it up using the following (e.g. in your `make.R` file):
+
+```{r}
+#| eval: false
+#| echo: true
+
+# ---- project execution
+targets::tar_config_set(
+  store  = "outputs/pipeline/",
+  script = "analyses/pipeline.R"
+)
+```
+
+Note that we also specified a custom location to store the targets.
+
+<br>
+
+:::{.fragment}
+
+```{r}
+#| eval: false
+#| echo: true
+
+library(targets)
+
+list(
+  # Make the workflow depends on the raw data file
+  tar_target(name = raw_data_file, command = here::here("data", "airquality.csv"), 
+             format = "file"), 
+  
+  # Read the data and return a data.frame
+  tar_target(name = raw_data, command = read.csv(raw_data_file)),
+  
+  # Transform the data
+  tar_target(data, raw_data %>% filter(!is.na(Ozone))),
+  
+  # Explore the data (custom function)
+  tar_target(hist, hist(data$Ozone)), 
+  
+  # Model the data
+  tar_target(fit, lm(Ozone ~ Wind + Temp, data))
+)
+```
+
+:::
+
+## Creating the pipeline
+
+```{r}
+#| eval: false
+#| echo: true
+
+library(targets)
+
+list(
+  # Make the workflow depends on the raw data file
+  tar_target(name = raw_data_file, command = here::here("data", "airquality.csv"), 
+             format = "file"), 
+  
+  # Read the data and return a data.frame
+  tar_target(name = raw_data, command = read.csv(raw_data_file)),
+  
+  # Transform the data
+  tar_target(data, raw_data %>% filter(!is.na(Ozone))),
+  
+  # Explore the data (custom function)
+  tar_target(hist, hist(data$Ozone)), 
+  
+  # Model the data
+  tar_target(fit, lm(Ozone ~ Wind + Temp, data))
+)
+```
+
+:::{.fragment}
+
+then visualise it:
+
+```{r}
+#| eval: false
+
+targets::tar_visnetwork()
+
+```
+
+
+![](images/airquality-pipeline.png){fig-align="center"}
+
+:::
+
+## Creating the pipeline
+
+<br>
+
+All target script files have these requirements:
+
+<br>
+
+:::{.incremental}
+1. Load the [`targets`](https://github.com/ropensci/targets) package itself.  
+
+<br>
+
+2. Load your custom functions and global objects into the R session: `targets::tar_source()`.  
+
+<br>
+
+3. Define individual targets with the `tar_target()` function. 
+Each target is an intermediate step of the workflow. At minimum, a target must have a **name** and an **R expression** but it's better if it uses a function that you defined in `R/`.  
+
+<br>
+
+4. Every target script must end with a list of your `tar_target()` objects.
+
+:::
+
+## Running the pipeline
+
+![](images/airquality-pipeline.png){fig-align="center" width="40%"}
+
+Once the pipeline is ready and inspected via targets::tar_visnetwork(), you can run it with:
+
+```{r}
+#| eval: false
+targets::tar_make()
+```
+
+:::{.fragment}
+
+![](images/targets-tar_make-1.png){fig-align="center"}
+:::
+
+## Running the pipeline
+
+And inspect it again:
+
+
+```{r}
+#| eval: false
+
+targets::tar_visnetwork()
+
+```
+
+
+![](../images/targets-tar_vis_2.png){fig-align="center"}
+
+## Retrieving the results (the targets)
+
+Targets objects are stored in the `Targets store` but you d'ont need to think about it when retrieving your results.
+
+Just load or read targets with their names:
+
+- `Loading` a target in the current workspace:
+
+```{r}
+#| eval: false
+
+targets::tar_load("hist")
+
+plot(hist)
+
+```
+
+![](../images/hist_Ozone.png){fig-align="center" width="50%"}
+
+## Retrieving the results (the targets)
+
+Targets objects are stored in the `Targets store` but you d'ont need to think about it when retrieving your results.
+
+Just load or read targets with their names:
+
+- `Reading` a target value and assign it to a new object:
+
+```{r}
+#| eval: false
+
+histo <- targets::tar_read("hist")
+
+plot(histo)
+
+```
+
+![](../images/hist_Ozone.png){fig-align="center" width="50%"}
+
+# Targets loves changes
+
+
+## Changing the pipeline
+
+Let's modidify the target "hist" to use ggplot2 instead of R base graphics.
+
+We will create a function that generate a `ggplot2` histogram object and write it's definition in `R/functions.R`:
+
+```{r}
+#| eval: false
+
+R/functions.R
+
+make_hist <- function(dat) {
+  
+  #dat = targets::tar_read("data")
+  
+  ggplot2::ggplot(data = dat, mapping = ggplot2::aes(x = Ozone)) +
+    ggplot2::geom_histogram()
+  
+}
+
+```
+
+And modify the pipeline to use it:
+
+```{r}
+#| eval: false
+#| code-line-numbers: "|17"
+
+library(targets)
+
+tar_source() #load functions in R/
+
+list(
+  # Make the workflow depends on the raw data file
+  tar_target(name = raw_data_file, command = here::here("data", "airquality.csv"), 
+             format = "file"), 
+  
+  # Read the data and return a data.frame
+  tar_target(name = raw_data, command = read.csv(raw_data_file)),
+  
+  # Transform the data
+  tar_target(data, raw_data |> dplyr::filter(!is.na(Ozone))),
+  
+  # Explore the data (custom function)
+  tar_target(hist, make_hist(data)), 
+  
+  # Model the data
+  tar_target(fit, lm(Ozone ~ Wind + Temp, data))
+)
+
+```
+
+## Changing the pipeline
+
+And inspect it again:
+
+
+```{r}
+#| eval: false
+
+targets::tar_visnetwork()
+
+```
+
+![](../images/targets-tar_vis_3.png){fig-align="center" width="70%"}
+
+
+## Changing the pipeline
+
+And run it again:
+
+
+```{r}
+#| eval: false
+
+targets::tar_make()
+
+```
+
+<br>
+
+![](images/targets-tar_make-2.png){fig-align="center" width="70%"}
+
+## Targets workflow
+
+#### Workflow
+
+1) Write an R function
+
+2) Add a target to the pipeline
+
+3) Visualize the pipeline
+
+4) Make the pipeline
+
+5) Check the results
+
+6) Write a function
+
+
+## Targets workflow
+
+#### Workflow
+
+1) Write an R function
+
+2) Add a target to the pipeline
+
+3) Visualize the pipeline
+
+4) Make the pipeline
+
+5) Check the results
+
+6) Write a function
+
+![](../images/François_Tomb_Carlo_Ruspi_02.jpg){width="60%" .absolute bottom="100" right="10"}
+
+
+# Input / Output Files
+
+
+## External input files
+
+<br>
+
+To reproducibly track an external input file, you need to define a new target that has:
+
+<br>
+
+:::{.incremental}
+
+1. A command that returns the file path as a character vector, and 
+
+2. specify `format = "file"` in `tar_target()`.
+
+:::
+
+:::{.fragment}
+
+<br> <br>
+
+When the target runs in the pipeline, the returned character vector gets recorded, and `Targets` watches the data file and invalidates the target when that file changes.
+
+:::
+
+:::{.fragment}
+
+<br>
+
+To track multiple files this way, simply define a multi-element character vector where each element is a path.
+
+:::
+
+:::{.fragment}
+<br>
+
+Each element can also be a directory, but this directory must not be empty at the time the target runs.
+
+:::
+
+
+## External input files
+
+```{r}
+#| eval: false
+
+library(targets)
+
+path_to_data <- function() {
+  "data/raw_data.csv"
+}
+
+list(
+  tar_target(raw_data_file, path_to_data(), format = "file"),
+  tar_target(raw_data, read.csv(raw_data_file))
+)
+```
+
+
+## Several independant input files
+
+A target with `format = "file"` treats the entire set of files as an irreducible bundle.
+
+That means in order to "branch" over files, each file should be associated  with its own target.
+
+This is not optimal at all. Using the argument `pattern` solve this by providing a way to dynamically create targets for each input file. 
+
+Here is a pipeline that begins with data files and loads each into a different dynamic branch.
+
+```{r}
+#| eval: false
+
+library(targets)
+
+list(
+  tar_target(paths, c("data_file_1.csv", "data_file_2.csv")),
+  tar_target(files, paths, format = "file", pattern = map(paths)),
+  tar_target(data, read.csv(files), pattern = map(files))
+)
+```
+
+The [`tar_files()`](https://docs.ropensci.org/tarchetypes/reference/tar_files.html) function from the [`tarchetypes`](https://github.com/ropensci/tarchetypes) package is shorthand for the first two targets above.
+
+```{r}
+#| eval: false
+
+library(targets)
+
+list(
+  tarchetypes::tar_files(files, c("data_file_1.csv", "data_file_2.csv")),
+  tar_target(data, read.csv(files), pattern = map(files))
+)
+```
+
+
+## External output files
+
+Output files have the same mechanics as input files. The target uses `format = "file"`, and the return value is a vector of paths to generated files.
+
+The only difference here is that the target's R command writes to storage before it returns a value.
+
+For example, here is an output file target that saves a visualization.
+
+```{r}
+#| eval: false
+
+tar_target(plot_file, save_plot_and_return_path(), format = "file")
+```
+
+
+Here, our custom `save_plot_and_return_path()` function does exactly what the name describes.
+
+```{r}
+#| eval: false
+save_plot_and_return_path <- function() {
+  plot <- ggplot(mtcars) +
+    geom_point(aes(x = wt, y = mpg))
+  ggsave(here::here("outputs", "plot_file.png"), plot, 
+         width = 7, height = 7)
+  return(file.path("outputs", "plot_file.png"))
+}
+```
+
+
+# Literate programming
+
+## Literate programming
+
+<br>
+
+If you render a Quarto report as part of a target, the report should be lightweight: mostly prose, minimal code, fast execution, and no output other than the rendered HTML/PDF document.
+
+<br>
+<br>
+
+:::{.callout-important}
+
+In other words, Quarto reports are just targets that document prior results.
+
+The bulk of the computation should have already happened upstream, and the most of the code chunks in the report itself should be terse calls to `tar_read()` and `tar_load()`.
+
+:::
+
+## Literate programming
+![](images/qmd-source.png){fig-align="center" width="70%"}
+
+The report depends on targets `fit` and `hist`.
+
+The use of `tar_read()` and `tar_load()` allows us to run the report outside the pipeline.
+
+As long as the `Targets store` folder has data on the required targets from a previous `tar_make()`, you can open the RStudio IDE, edit the report, and click the Render button like you would for any other Quarto report.
+
+## Literate programming
+
+The target definition function to render Quarto documents is part of the [`tarchetypes`](https://docs.ropensci.org/tarchetypes/) `R` package and looks like this.
+
+```{r}
+#| eval: false
+
+tarchetypes::tar_quarto(report, "report.qmd") # Just defines a target object.
+
+```
+
+. . .
+
+Because symbols `fit` and `hist` appear in the report via `tar_load()` and `tar_read()`, `targets` knows that `report` depends on `fit` and `hist`.
+
+![](images/qmd-source.png){fig-align="center" width="50%"}
+
+
+## Literate programming
+
+When we put the `report` target in the pipeline, these dependency relationships show up in the graph.
+
+
+```{r}
+#| eval: false
+
+library(targets)
+
+tar_source() #load functions in R/
+
+list(
+  # Make the workflow depends on the raw data file
+  tar_target(name = raw_data_file, command = here::here("data", "airquality.csv"), 
+             format = "file"), 
+  
+  # Read the data and return a data.frame
+  tar_target(name = raw_data, command = read.csv(raw_data_file)),
+  
+  # Transform the data
+  tar_target(data, raw_data |> dplyr::filter(!is.na(Ozone))),
+  
+  # Explore the data (custom function)
+  tar_target(hist, make_hist(data)), 
+  
+  # Model the data
+  tar_target(fit, lm(Ozone ~ Wind + Temp, data)),
+  
+  tarchetypes::tar_quarto(report, "report.qmd")
+)
+```
+
+## Literate programming
+
+When we put the `report` target in the pipeline, these dependency relationships show up in the graph.
+
+![](images/targets-tar_vis_4.png){fig-align="center" width="70%"}
+<br> <br>
+
+As always, `tar_make()` will run the pipeline and compile the report.
+
+# Recap
+
+## Recap: Why use targets?
+
+> - Optimize your workflow
+>
+> - Reproducible for others and your future self
+>
+> - 100% sure to be reproducible
+>
+> - You can count on **targets**'s brain and work in a clean environment
+>
+> - The package is well maintained and documented with a great [manual](https://books.ropensci.org/targets/)
+
+. . .
+
+::::{.columns}
+
+
+:::{.column}
+
+<br> <br>
+
+![](images/targets-tar_vis_5.png)
+
+:::
+
+:::{.column .center}
+![](images/report_thumb.png){width="50%"}
+:::
+
+
+::::
+
+
+
+
